@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bath Foundry — Mission Control</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+      }
+    }
+    </script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <!-- Breadcrumb nav -->
+    <div id="breadcrumb">
+        <span class="crumb active" data-level="city">City</span>
+    </div>
+
+    <!-- Perf counter -->
+    <div id="perf">
+        <span id="fps">-- fps</span>
+        <span id="draws">-- draws</span>
+        <span id="tris">-- tris</span>
+    </div>
+
+    <!-- Global Dock -->
+    <div id="dock">
+        <button class="dock-btn" data-target="scheduling">📅 Schedule</button>
+        <button class="dock-btn" data-target="projects">📋 Active Jobs</button>
+        <button class="dock-btn" data-target="pipeline" disabled>📊 Pipeline</button>
+        <button class="dock-btn" data-target="tickets" disabled>🎫 Tickets</button>
+    </div>
+
+    <!-- Command Palette -->
+    <div id="cmd-palette" class="hidden">
+        <input type="text" id="cmd-input" placeholder="Search buildings, metrics, actions..." autocomplete="off">
+        <div id="cmd-results"></div>
+    </div>
+
+    <!-- Tour button -->
+    <button id="tour-btn" title="Morning Brief Tour">▶ Tour</button>
+
+    <script type="module" src="js/main.js?v=1"></script>
+</body>
+</html>
