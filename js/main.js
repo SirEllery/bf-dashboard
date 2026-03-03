@@ -7,8 +7,8 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-import { createCity, BUILDINGS, DISTRICTS } from './city.js?v=1';
-import { CameraSystem } from './camera.js?v=1';
+import { createCity, BUILDINGS, DISTRICTS } from './city.js?v=2';
+import { CameraSystem } from './camera.js?v=2';
 
 // ── Scene Setup ──
 const renderer = new THREE.WebGLRenderer({ antialias: true });

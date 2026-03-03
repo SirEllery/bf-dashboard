@@ -16,7 +16,7 @@ const EASE = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; /
 // Camera presets per zoom tier
 const PRESETS = {
     city: {
-        position: new THREE.Vector3(0, 65, 70),
+        position: new THREE.Vector3(0, 80, 85),
         target: new THREE.Vector3(0, 0, 0),
         duration: 0.8,
     },
@@ -109,7 +109,8 @@ export class CameraSystem {
     goToBuilding(buildingData) {
         if (!buildingData) return;
 
-        const bPos = new THREE.Vector3(buildingData.position[0], 0, buildingData.position[2]);
+        const p = buildingData.pos || buildingData.position;
+        const bPos = new THREE.Vector3(p[0], 0, p[2]);
         const preset = PRESETS.building;
         const pos = new THREE.Vector3(
             bPos.x + preset.distanceOffset * 0.6,
@@ -147,11 +148,14 @@ export class CameraSystem {
     /** Tour mode — scripted camera path through key points */
     async runTour() {
         const stops = [
-            { pos: new THREE.Vector3(0, 65, 70), target: new THREE.Vector3(0, 0, 0), hold: 2000 },
-            { pos: new THREE.Vector3(40, 30, 50), target: new THREE.Vector3(30, 0, 30), hold: 2500 },
-            { pos: new THREE.Vector3(28, 16, 38), target: new THREE.Vector3(22, 6, 28), hold: 2500 },
-            { pos: new THREE.Vector3(42, 14, 38), target: new THREE.Vector3(38, 5, 28), hold: 2000 },
-            { pos: new THREE.Vector3(0, 65, 70), target: new THREE.Vector3(0, 0, 0), hold: 500 },
+            { pos: new THREE.Vector3(0, 80, 85), target: new THREE.Vector3(0, 0, 0), hold: 2000 },
+            { pos: new THREE.Vector3(55, 35, 60), target: new THREE.Vector3(40, 0, 40), hold: 2500 },
+            { pos: new THREE.Vector3(38, 18, 46), target: new THREE.Vector3(32, 7, 36), hold: 2500 },
+            { pos: new THREE.Vector3(54, 16, 46), target: new THREE.Vector3(48, 6, 36), hold: 2000 },
+            { pos: new THREE.Vector3(-55, 35, 60), target: new THREE.Vector3(-40, 0, 40), hold: 1500 },
+            { pos: new THREE.Vector3(-55, 35, -55), target: new THREE.Vector3(-40, 0, -40), hold: 1500 },
+            { pos: new THREE.Vector3(55, 35, -55), target: new THREE.Vector3(40, 0, -40), hold: 1500 },
+            { pos: new THREE.Vector3(0, 80, 85), target: new THREE.Vector3(0, 0, 0), hold: 500 },
         ];
 
         for (const stop of stops) {
