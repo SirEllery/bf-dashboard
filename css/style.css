@@ -186,6 +186,41 @@ body {
     color: #fff;
 }
 
+#tour-btn.touring {
+    border-color: rgba(255, 100, 50, 0.5);
+    color: #ff8866;
+    animation: tourPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tourPulse {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 12px rgba(255, 100, 50, 0.2); }
+}
+
+/* Tour label overlay */
+#tour-label {
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 160;
+    padding: 8px 20px;
+    background: rgba(6, 8, 14, 0.85);
+    border: 1px solid rgba(0, 224, 255, 0.2);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #c8e0f0;
+    letter-spacing: 1px;
+    backdrop-filter: blur(8px);
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+#tour-label.hidden {
+    opacity: 0;
+}
+
 /* ── Floor Selector (Interior Mode) ── */
 #floor-selector {
     position: fixed;

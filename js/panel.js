@@ -132,12 +132,7 @@ export function getCurrentBuildingId() {
 // ── Close button handler ──
 closeBtn.addEventListener('click', closePanel);
 
-// Escape closes panel
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isPanelOpen()) {
-        closePanel();
-    }
-});
+// Escape handling is in main.js (unified priority)
 
 // ── Render Functions ──
 

@@ -167,26 +167,39 @@ export class CameraSystem {
 
     /** Tour mode — scripted camera path through key points */
     async runTour() {
+        if (this.touring) {
+            this.touring = false; // Cancel
+            return;
+        }
+        this.touring = true;
+        if (this.onTourChange) this.onTourChange(true);
+
         const stops = [
-            { pos: new THREE.Vector3(0, 80, 85), target: new THREE.Vector3(0, 0, 0), hold: 2000 },
-            { pos: new THREE.Vector3(55, 35, 60), target: new THREE.Vector3(40, 0, 40), hold: 2500 },
-            { pos: new THREE.Vector3(38, 18, 46), target: new THREE.Vector3(32, 7, 36), hold: 2500 },
-            { pos: new THREE.Vector3(54, 16, 46), target: new THREE.Vector3(48, 6, 36), hold: 2000 },
-            { pos: new THREE.Vector3(-55, 35, 60), target: new THREE.Vector3(-40, 0, 40), hold: 1500 },
-            { pos: new THREE.Vector3(-55, 35, -55), target: new THREE.Vector3(-40, 0, -40), hold: 1500 },
-            { pos: new THREE.Vector3(55, 35, -55), target: new THREE.Vector3(40, 0, -40), hold: 1500 },
-            { pos: new THREE.Vector3(0, 80, 85), target: new THREE.Vector3(0, 0, 0), hold: 500 },
+            { pos: new THREE.Vector3(0, 80, 85), target: new THREE.Vector3(0, 0, 0), hold: 2000, label: 'City Overview' },
+            { pos: new THREE.Vector3(55, 35, 60), target: new THREE.Vector3(40, 0, 40), hold: 2500, label: 'Operations Hub' },
+            { pos: new THREE.Vector3(38, 18, 46), target: new THREE.Vector3(32, 7, 36), hold: 2500, label: 'Scheduling' },
+            { pos: new THREE.Vector3(54, 16, 46), target: new THREE.Vector3(48, 6, 36), hold: 2000, label: 'Project Management' },
+            { pos: new THREE.Vector3(-55, 35, 60), target: new THREE.Vector3(-40, 0, 40), hold: 2000, label: 'Customer Journey' },
+            { pos: new THREE.Vector3(-55, 35, -55), target: new THREE.Vector3(-40, 0, -40), hold: 2000, label: 'Business Journey' },
+            { pos: new THREE.Vector3(55, 35, -55), target: new THREE.Vector3(40, 0, -40), hold: 2000, label: 'Employee Journey' },
+            { pos: new THREE.Vector3(0, 80, 85), target: new THREE.Vector3(0, 0, 0), hold: 500, label: 'Overview' },
         ];
 
         for (const stop of stops) {
-            await this._transitionAsync(stop.pos, stop.target, 1.2);
+            if (!this.touring) break;
+            if (this.onTourLabel) this.onTourLabel(stop.label);
+            await this._transitionAsync(stop.pos, stop.target, 1.5);
+            if (!this.touring) break;
             await this._wait(stop.hold);
         }
 
+        this.touring = false;
         this.currentTier = 'city';
         this.currentDistrict = null;
         this.currentBuilding = null;
         this._notifyTierChange();
+        if (this.onTourChange) this.onTourChange(false);
+        if (this.onTourLabel) this.onTourLabel(null);
     }
 
     // ── Internal ──

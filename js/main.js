@@ -8,8 +8,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 import { createCity, BUILDINGS, DISTRICTS } from './city.js?v=3';
-import { CameraSystem } from './camera.js?v=3';
-import { createInterior, animateInterior, FLOOR_CONFIG } from './interiors.js?v=1';
+import { CameraSystem } from './camera.js?v=4';
+import { createInterior, animateInterior, FLOOR_CONFIG } from './interiors.js?v=2';
 import { initData, getData, getKPIs, getVisualData, getScheduleDisplayLines, getProjectDisplayLines } from './data.js?v=1';
 import {
     PerformanceMonitor,
@@ -258,7 +258,10 @@ document.querySelectorAll('.dock-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const target = btn.dataset.target;
         const bld = BUILDINGS.find(b => b.id === target);
-        if (bld) cam.goToBuilding(bld);
+        if (bld) {
+            cam.goToBuilding(bld);
+            openPanel(bld.id);
+        }
     });
 });
 
@@ -334,18 +337,30 @@ const cmdInput = document.getElementById('cmd-input');
 const cmdResults = document.getElementById('cmd-results');
 
 const searchItems = [
+    // Navigation
+    { label: 'City Overview', hint: 'Navigation · Press 0', action: () => { closePanel(); cam.goToCity(); } },
+    { label: 'Start Tour', hint: 'Tour Mode', action: () => { closePanel(); cam.runTour(); } },
+
+    // Districts
+    ...Object.entries(DISTRICTS).map(([key, d], i) => ({
+        label: d.name,
+        hint: `District · Press ${i + 1}`,
+        action: () => { closePanel(); cam.goToDistrict(key); },
+    })),
+
+    // Buildings
     ...BUILDINGS.map(b => ({
         label: b.name,
-        hint: DISTRICTS[b.district].name,
-        action: () => cam.goToBuilding(b),
+        hint: DISTRICTS[b.district].name + (b.hero ? ' · Hero' : ''),
+        action: () => { cam.goToBuilding(b); openPanel(b.id); },
     })),
-    ...Object.entries(DISTRICTS).map(([key, d]) => ({
-        label: d.name,
-        hint: 'District',
-        action: () => cam.goToDistrict(key),
+
+    // Hero building interiors
+    ...BUILDINGS.filter(b => b.hero).map(b => ({
+        label: `${b.name} Interior`,
+        hint: 'Enter building',
+        action: () => { enterBuildingInterior(b.id); },
     })),
-    { label: 'City Overview', hint: 'Navigation', action: () => cam.goToCity() },
-    { label: 'Morning Tour', hint: 'Tour Mode', action: () => cam.runTour() },
 ];
 
 document.addEventListener('keydown', (e) => {
@@ -358,15 +373,22 @@ document.addEventListener('keydown', (e) => {
             renderCmdResults('');
         }
     }
-    if (e.key === 'Escape' && !palette.classList.contains('hidden')) {
-        palette.classList.add('hidden');
+    if (e.key === 'Escape') {
+        // Priority: command palette > panel > tour
+        if (!palette.classList.contains('hidden')) {
+            palette.classList.add('hidden');
+        } else if (isPanelOpen()) {
+            closePanel();
+        } else if (cam.touring) {
+            cam.touring = false;
+        }
     }
     // Number keys for quick nav (1-4 = districts)
     if (document.activeElement.tagName !== 'INPUT' && !e.ctrlKey && !e.metaKey) {
         const districtKeys = ['operations', 'customer', 'business', 'employee'];
         const num = parseInt(e.key);
-        if (num >= 1 && num <= 4) cam.goToDistrict(districtKeys[num - 1]);
-        if (e.key === '0') cam.goToCity();
+        if (num >= 1 && num <= 4) { closePanel(); cam.goToDistrict(districtKeys[num - 1]); }
+        if (e.key === '0') { closePanel(); cam.goToCity(); }
     }
 });
 
@@ -408,7 +430,37 @@ function renderCmdResults(query) {
 }
 
 // ── Tour Button ──
-document.getElementById('tour-btn').addEventListener('click', () => cam.runTour());
+const tourBtn = document.getElementById('tour-btn');
+const tourLabel = document.getElementById('tour-label');
+
+tourBtn.addEventListener('click', () => {
+    if (cam.touring) {
+        cam.touring = false; // Cancel tour
+    } else {
+        closePanel();
+        cam.runTour();
+    }
+});
+
+cam.onTourChange = (active) => {
+    if (active) {
+        tourBtn.textContent = '■ Stop';
+        tourBtn.classList.add('touring');
+    } else {
+        tourBtn.textContent = '▶ Tour';
+        tourBtn.classList.remove('touring');
+        tourLabel.classList.add('hidden');
+    }
+};
+
+cam.onTourLabel = (label) => {
+    if (label) {
+        tourLabel.textContent = label;
+        tourLabel.classList.remove('hidden');
+    } else {
+        tourLabel.classList.add('hidden');
+    }
+};
 
 // ── Floor Selector Buttons ──
 document.querySelectorAll('.floor-btn').forEach(btn => {
