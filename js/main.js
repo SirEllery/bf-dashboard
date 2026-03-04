@@ -1,6 +1,6 @@
 /**
  * main.js — Bath Foundry 3D Dashboard entry point
- * v0.3 — Polish + Performance Optimization
+ * v0.5 — Detail Panels + Interior Navigation
  */
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -133,20 +133,11 @@ renderer.domElement.addEventListener('click', (e) => {
         const buildingId = hits[0].object.userData.buildingId;
         const bld = BUILDINGS.find(b => b.id === buildingId);
         if (bld) {
-            if (cam.currentTier === 'building' && cam.currentBuilding === buildingId) {
-                // Already focused on this building — open detail panel
-                openPanel(buildingId);
-                if (bld.hero) {
-                    // Third click on hero building → enter interior
-                    if (isPanelOpen() && getCurrentBuildingId() === buildingId) {
-                        // Panel already showing this building, enter interior
-                        enterBuildingInterior(buildingId);
-                    }
-                }
-            } else if (cam.currentTier === 'interior' && cam.currentBuilding === buildingId) {
+            if (cam.currentTier === 'interior' && cam.currentBuilding === buildingId) {
+                // Already inside — exit interior
                 exitBuildingInterior();
             } else {
-                // Navigate to building and open panel
+                // Navigate to building + open detail panel
                 cam.goToBuilding(bld);
                 openPanel(buildingId);
             }
@@ -207,18 +198,26 @@ function updateHover(t) {
 const breadcrumb = document.getElementById('breadcrumb');
 
 cam.onTierChange = (tier, district, building) => {
+    const bld = building ? BUILDINGS.find(b => b.id === building) : null;
+    const distKey = district || (bld ? bld.district : null);
+
     let html = `<span class="crumb ${tier === 'city' ? 'active' : ''}" data-level="city" data-action="city">City</span>`;
 
-    if (district) {
-        const dist = DISTRICTS[district];
+    if (distKey) {
+        const dist = DISTRICTS[distKey];
         html += `<span class="crumb-sep">›</span>`;
-        html += `<span class="crumb ${tier === 'district' ? 'active' : ''}" data-level="district" data-action="district" data-key="${district}">${dist.name}</span>`;
+        html += `<span class="crumb ${tier === 'district' ? 'active' : ''}" data-level="district" data-action="district" data-key="${distKey}">${dist.name}</span>`;
     }
 
-    if (building) {
-        const bld = BUILDINGS.find(b => b.id === building);
+    if (bld) {
         html += `<span class="crumb-sep">›</span>`;
-        html += `<span class="crumb active" data-level="building">${bld?.name || building}</span>`;
+        html += `<span class="crumb ${tier === 'building' ? 'active' : ''}" data-level="building" data-action="building" data-key="${bld.id}">${bld.name}</span>`;
+    }
+
+    if (tier === 'interior' && cam.currentFloor) {
+        const floorNames = { ground: 'Ground Floor', mid: 'Mid Floor', roof: 'Roof Deck' };
+        html += `<span class="crumb-sep">›</span>`;
+        html += `<span class="crumb active" data-level="floor">${floorNames[cam.currentFloor] || cam.currentFloor}</span>`;
     }
 
     breadcrumb.innerHTML = html;
@@ -226,8 +225,16 @@ cam.onTierChange = (tier, district, building) => {
     breadcrumb.querySelectorAll('.crumb').forEach(el => {
         el.addEventListener('click', () => {
             const action = el.dataset.action;
-            if (action === 'city') cam.goToCity();
-            else if (action === 'district') cam.goToDistrict(el.dataset.key);
+            if (action === 'city') { closePanel(); cam.goToCity(); }
+            else if (action === 'district') { closePanel(); cam.goToDistrict(el.dataset.key); }
+            else if (action === 'building') {
+                const b = BUILDINGS.find(b => b.id === el.dataset.key);
+                if (b) {
+                    if (cam.currentTier === 'interior') exitBuildingInterior();
+                    cam.goToBuilding(b);
+                    openPanel(b.id);
+                }
+            }
         });
     });
 
@@ -315,6 +322,11 @@ function goToFloor(floorKey) {
 
     cam.goToFloor(currentInteriorBuilding, floorKey);
 }
+
+// ── Expose interior navigation for panel.js ──
+window._enterBuildingInterior = enterBuildingInterior;
+window._exitBuildingInterior = exitBuildingInterior;
+window._goToFloor = goToFloor;
 
 // ── Command Palette ──
 const palette = document.getElementById('cmd-palette');
@@ -660,4 +672,4 @@ window.addEventListener('resize', () => {
     composer.setSize(window.innerWidth, window.innerHeight);
 });
 
-console.log('Bath Foundry Dashboard v0.3 — Polish + Performance');
+console.log('Bath Foundry Dashboard v0.5 — Detail Panels + Interior Navigation');

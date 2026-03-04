@@ -132,11 +132,13 @@ export class CameraSystem {
         const cameraData = getInteriorCameraPosition(buildingId, floor);
         if (!cameraData) return;
 
-        const preset = PRESETS.building;
         const pos = cameraData.position;
         const target = cameraData.target;
 
-        this._transition(pos, target, preset.duration * 0.8, () => {
+        // Smooth transition — slightly longer for floor changes within interior
+        const duration = this.currentTier === 'interior' ? 0.6 : 0.8;
+
+        this._transition(pos, target, duration, () => {
             this.currentTier = 'interior';
             this.currentBuilding = buildingId;
             this.currentFloor = floor;

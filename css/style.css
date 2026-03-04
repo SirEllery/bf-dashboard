@@ -619,6 +619,29 @@ body {
 .dp-crew-dot.en-route { background: #ffaa00; }
 .dp-crew-dot.staging { background: #00e0ff; }
 
+/* Enter interior button */
+.dp-enter-btn {
+    width: 100%;
+    padding: 10px 16px;
+    background: rgba(0, 224, 255, 0.06);
+    border: 1px solid rgba(0, 224, 255, 0.25);
+    border-radius: 6px;
+    color: #80d0e8;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    letter-spacing: 0.5px;
+}
+
+.dp-enter-btn:hover {
+    background: rgba(0, 224, 255, 0.12);
+    border-color: rgba(0, 224, 255, 0.5);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(0, 224, 255, 0.15);
+}
+
 /* Generic building info */
 .dp-info-row {
     display: flex;

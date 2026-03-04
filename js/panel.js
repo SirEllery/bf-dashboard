@@ -151,10 +151,18 @@ function renderBody(bld, dist) {
     }
 }
 
+function renderHeroActions(bld) {
+    return `<div class="dp-section">
+        <button class="dp-enter-btn" onclick="window._enterBuildingInterior('${bld.id}')">
+            ⬇ Enter Building Interior
+        </button>
+    </div>`;
+}
+
 function renderSchedulingPanel(bld, dist) {
     const data = getData('scheduling');
 
-    let html = '';
+    let html = renderHeroActions(bld);
 
     // KPI grid
     html += `<div class="dp-section">
@@ -215,7 +223,7 @@ function renderSchedulingPanel(bld, dist) {
 function renderProjectsPanel(bld, dist) {
     const data = getData('projects');
 
-    let html = '';
+    let html = renderHeroActions(bld);
 
     // KPI grid
     const budgetPct = data.totalBudget > 0 ? Math.round((data.totalSpent / data.totalBudget) * 100) : 0;

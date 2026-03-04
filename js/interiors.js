@@ -513,16 +513,18 @@ export function getInteriorCameraPosition(buildingId, floor) {
     const [bw, bh, bd] = building.size;
     const baseY = by + (bh * config.heightPercent);
 
+    // Camera positioned inside the room looking at the center
+    const roomScale = bw * INTERIOR_SCALE;
     return {
         position: new THREE.Vector3(
-            bx + 8,
-            baseY + FLOOR_HEIGHT / 2 + 2,
-            bz + 10
+            bx + roomScale * 0.4,
+            baseY + FLOOR_HEIGHT * 0.6,
+            bz + roomScale * 0.5
         ),
         target: new THREE.Vector3(
             bx,
-            baseY + FLOOR_HEIGHT / 2,
-            bz
+            baseY + FLOOR_HEIGHT * 0.35,
+            bz - roomScale * 0.2
         ),
         floor,
         buildingId,
