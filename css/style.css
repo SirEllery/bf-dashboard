@@ -186,6 +186,85 @@ body {
     color: #fff;
 }
 
+/* ── Floor Selector (Interior Mode) ── */
+#floor-selector {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(8, 10, 18, 0.9);
+    border: 1px solid rgba(255, 100, 50, 0.3);
+    border-radius: 8px;
+    backdrop-filter: blur(8px);
+}
+
+#floor-selector.hidden { display: none; }
+
+.floor-btn {
+    padding: 6px 12px;
+    background: rgba(255, 100, 50, 0.08);
+    border: 1px solid rgba(255, 100, 50, 0.25);
+    border-radius: 5px;
+    color: #ffaa88;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.floor-btn:hover {
+    background: rgba(255, 100, 50, 0.15);
+    border-color: rgba(255, 100, 50, 0.5);
+    color: #fff;
+}
+
+.floor-btn.active {
+    background: rgba(255, 100, 50, 0.2);
+    border-color: rgba(255, 100, 50, 0.6);
+    color: #fff;
+}
+
+/* Floor-specific button styles */
+.floor-btn[data-floor="ground"] {
+    background: rgba(255, 68, 34, 0.08);
+    border-color: rgba(255, 68, 34, 0.25);
+    color: #ff6644;
+}
+.floor-btn[data-floor="ground"]:hover,
+.floor-btn[data-floor="ground"].active {
+    background: rgba(255, 68, 34, 0.2);
+    border-color: rgba(255, 68, 34, 0.6);
+    color: #fff;
+}
+
+.floor-btn[data-floor="mid"] {
+    background: rgba(68, 136, 255, 0.08);
+    border-color: rgba(68, 136, 255, 0.25);
+    color: #6688ff;
+}
+.floor-btn[data-floor="mid"]:hover,
+.floor-btn[data-floor="mid"].active {
+    background: rgba(68, 136, 255, 0.2);
+    border-color: rgba(68, 136, 255, 0.6);
+    color: #fff;
+}
+
+.floor-btn[data-floor="roof"] {
+    background: rgba(68, 255, 136, 0.08);
+    border-color: rgba(68, 255, 136, 0.25);
+    color: #66ff88;
+}
+.floor-btn[data-floor="roof"]:hover,
+.floor-btn[data-floor="roof"].active {
+    background: rgba(68, 255, 136, 0.2);
+    border-color: rgba(68, 255, 136, 0.6);
+    color: #fff;
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

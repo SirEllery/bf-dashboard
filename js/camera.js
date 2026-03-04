@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DISTRICTS } from './city.js';
+import { getInteriorCameraPosition } from './interiors.js';
 
 const EASE = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // cubic ease in-out
 
@@ -122,6 +123,23 @@ export class CameraSystem {
         this._transition(pos, target, preset.duration, () => {
             this.currentTier = 'building';
             this.currentBuilding = buildingData.id;
+            this._notifyTierChange();
+        });
+    }
+
+    /** Navigate to a specific floor inside a hero building */
+    goToFloor(buildingId, floor) {
+        const cameraData = getInteriorCameraPosition(buildingId, floor);
+        if (!cameraData) return;
+
+        const preset = PRESETS.building;
+        const pos = cameraData.position;
+        const target = cameraData.target;
+
+        this._transition(pos, target, preset.duration * 0.8, () => {
+            this.currentTier = 'interior';
+            this.currentBuilding = buildingId;
+            this.currentFloor = floor;
             this._notifyTierChange();
         });
     }

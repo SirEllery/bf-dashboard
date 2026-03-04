@@ -8,7 +8,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 import { createCity, BUILDINGS, DISTRICTS } from './city.js?v=2';
-import { CameraSystem } from './camera.js?v=2';
+import { CameraSystem } from './camera.js?v=3';
+import { createInterior, animateInterior, FLOOR_CONFIG } from './interiors.js?v=1';
 
 // ── Scene Setup ──
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -43,8 +44,15 @@ scene.add(dirLight);
 // ── City ──
 const { cityGroup, buildingMeshes } = createCity(scene);
 
+// Expose BUILDINGS globally for interiors.js
+window.BUILDINGS = BUILDINGS;
+
 // ── Camera System ──
 const cam = new CameraSystem(camera, renderer);
+
+// ── Interior Rooms (for hero buildings) ──
+const activeInteriors = new Map(); // buildingId -> { ground, mid, roof }
+let currentInteriorBuilding = null;
 
 // ── Raycasting ──
 const raycaster = new THREE.Raycaster();
@@ -67,8 +75,15 @@ renderer.domElement.addEventListener('click', (e) => {
         const bld = BUILDINGS.find(b => b.id === buildingId);
         if (bld) {
             if (cam.currentTier === 'building' && cam.currentBuilding === buildingId) {
-                // Already at this building — zoom back to district
-                cam.goToDistrict(bld.district);
+                // Already at this building — enter interior (ground floor)
+                if (bld.hero) {
+                    enterBuildingInterior(buildingId);
+                } else {
+                    cam.goToDistrict(bld.district);
+                }
+            } else if (cam.currentTier === 'interior' && cam.currentBuilding === buildingId) {
+                // In interior, click exits to building view
+                exitBuildingInterior();
             } else {
                 cam.goToBuilding(bld);
             }
@@ -104,6 +119,21 @@ cam.onTierChange = (tier, district, building) => {
             else if (action === 'district') cam.goToDistrict(el.dataset.key);
         });
     });
+
+    // Show/hide floor selector based on tier
+    const floorSelector = document.getElementById('floor-selector');
+    if (tier === 'interior') {
+        floorSelector.classList.remove('hidden');
+        // Set active floor button
+        floorSelector.querySelectorAll('.floor-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.floor === cam.currentFloor) {
+                btn.classList.add('active');
+            }
+        });
+    } else {
+        floorSelector.classList.add('hidden');
+    }
 };
 
 // ── Dock ──
@@ -114,6 +144,73 @@ document.querySelectorAll('.dock-btn').forEach(btn => {
         if (bld) cam.goToBuilding(bld);
     });
 });
+
+// ── Interior Navigation ──
+
+function enterBuildingInterior(buildingId) {
+    // Hide exterior building mesh
+    const buildingEntry = buildingMeshes[buildingId];
+    if (buildingEntry) {
+        buildingEntry.mesh.visible = false;
+    }
+
+    // Create interiors if not already created
+    if (!activeInteriors.has(buildingId)) {
+        const interiors = {
+            ground: createInterior(buildingId, 'ground', scene),
+            mid: createInterior(buildingId, 'mid', scene),
+            roof: createInterior(buildingId, 'roof', scene),
+        };
+        activeInteriors.set(buildingId, interiors);
+    }
+
+    // Show all floors, start with ground
+    const interiors = activeInteriors.get(buildingId);
+    for (const floor of Object.values(interiors)) {
+        if (floor) floor.visible = true;
+    }
+
+    // Navigate to ground floor
+    cam.goToFloor(buildingId, 'ground');
+    currentInteriorBuilding = buildingId;
+}
+
+function exitBuildingInterior() {
+    if (!currentInteriorBuilding) return;
+
+    // Hide interiors
+    const interiors = activeInteriors.get(currentInteriorBuilding);
+    if (interiors) {
+        for (const floor of Object.values(interiors)) {
+            if (floor) floor.visible = false;
+        }
+    }
+
+    // Show exterior building
+    const buildingEntry = buildingMeshes[currentInteriorBuilding];
+    if (buildingEntry) {
+        buildingEntry.mesh.visible = true;
+    }
+
+    // Navigate back to building view
+    const bld = BUILDINGS.find(b => b.id === currentInteriorBuilding);
+    if (bld) cam.goToBuilding(bld);
+
+    currentInteriorBuilding = null;
+}
+
+function goToFloor(floorKey) {
+    if (!currentInteriorBuilding) return;
+    const interiors = activeInteriors.get(currentInteriorBuilding);
+    if (!interiors || !interiors[floorKey]) return;
+
+    // Hide other floors, show selected
+    for (const [key, floor] of Object.entries(interiors)) {
+        if (floor) floor.visible = (key === floorKey);
+    }
+
+    cam.goToFloor(currentInteriorBuilding, floorKey);
+}
 
 // ── Command Palette ──
 const palette = document.getElementById('cmd-palette');
@@ -197,6 +294,14 @@ function renderCmdResults(query) {
 // ── Tour Button ──
 document.getElementById('tour-btn').addEventListener('click', () => cam.runTour());
 
+// ── Floor Selector Buttons ──
+document.querySelectorAll('.floor-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const floor = btn.dataset.floor;
+        goToFloor(floor);
+    });
+});
+
 // ── Perf Counters ──
 const fpsEl = document.getElementById('fps');
 const drawsEl = document.getElementById('draws');
@@ -219,6 +324,16 @@ function animate() {
             const beacon = entry.mesh.children.find(c => c.geometry?.type === 'SphereGeometry');
             if (beacon) {
                 beacon.material.opacity = 0.6 + 0.4 * Math.sin(t * 3 + entry.data.position[0]);
+            }
+        }
+    }
+
+    // Animate active interiors
+    if (currentInteriorBuilding && activeInteriors.has(currentInteriorBuilding)) {
+        const interiors = activeInteriors.get(currentInteriorBuilding);
+        for (const floor of Object.values(interiors)) {
+            if (floor && floor.visible) {
+                animateInterior(floor, t);
             }
         }
     }
