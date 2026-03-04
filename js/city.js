@@ -127,8 +127,7 @@ export function createCity(scene) {
         createDistrictEnvironment(cityGroup, key, dist);
     }
 
-    // Connecting roads (glowing lanes between districts)
-    createRoads(cityGroup);
+    // Roads are now created by effects.js (createImprovedRoads) for better visuals
 
     // Buildings
     const buildingMeshes = {};

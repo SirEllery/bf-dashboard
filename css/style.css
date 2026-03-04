@@ -265,6 +265,91 @@ body {
     color: #fff;
 }
 
+/* ── Loading Overlay ── */
+#loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #020208;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.6s ease;
+}
+
+#loading-content {
+    text-align: center;
+}
+
+#loading-title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 6px;
+    color: #c8d8e8;
+    margin-bottom: 4px;
+}
+
+#loading-subtitle {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: rgba(100, 200, 255, 0.4);
+    margin-bottom: 32px;
+    text-transform: uppercase;
+}
+
+#loading-bar-container {
+    width: 240px;
+    height: 2px;
+    background: rgba(100, 200, 255, 0.1);
+    border-radius: 1px;
+    margin: 0 auto 12px;
+    overflow: hidden;
+}
+
+#loading-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, rgba(0, 224, 255, 0.6), rgba(100, 180, 255, 0.8));
+    border-radius: 1px;
+    transition: width 0.3s ease;
+}
+
+#loading-text {
+    font-size: 11px;
+    color: rgba(100, 200, 255, 0.35);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+}
+
+/* ── Hover Tooltip ── */
+#hover-tooltip {
+    position: fixed;
+    z-index: 150;
+    padding: 8px 12px;
+    background: rgba(8, 10, 18, 0.92);
+    border: 1px solid rgba(0, 224, 255, 0.25);
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #d0dce8;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    max-width: 220px;
+    white-space: nowrap;
+    transition: opacity 0.15s ease;
+}
+
+#hover-tooltip.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#hover-tooltip .tooltip-district {
+    color: rgba(100, 200, 255, 0.5);
+    font-size: 11px;
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

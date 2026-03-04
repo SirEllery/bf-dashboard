@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bath Foundry — Mission Control</title>
-    <link rel="stylesheet" href="css/style.css?v=1">
+    <link rel="stylesheet" href="css/style.css?v=2">
     <script type="importmap">
     {
       "imports": {
@@ -16,6 +16,21 @@
 </head>
 <body>
     <div id="canvas-container"></div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay">
+        <div id="loading-content">
+            <div id="loading-title">BATH FOUNDRY</div>
+            <div id="loading-subtitle">Mission Control</div>
+            <div id="loading-bar-container">
+                <div id="loading-bar"></div>
+            </div>
+            <div id="loading-text">Initializing...</div>
+        </div>
+    </div>
+
+    <!-- Hover tooltip -->
+    <div id="hover-tooltip" class="hidden"></div>
 
     <!-- Breadcrumb nav -->
     <div id="breadcrumb">
@@ -53,6 +68,6 @@
         <button class="floor-btn" data-floor="roof">📊 Roof</button>
     </div>
 
-    <script type="module" src="js/main.js?v=5"></script>
+    <script type="module" src="js/main.js?v=6"></script>
 </body>
 </html>

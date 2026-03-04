@@ -1,16 +1,45 @@
 /**
  * main.js — Bath Foundry 3D Dashboard entry point
- * Tech spike: scene, camera rails, procedural city, perf counters
+ * v0.3 — Polish + Performance Optimization
  */
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-import { createCity, BUILDINGS, DISTRICTS } from './city.js?v=2';
+import { createCity, BUILDINGS, DISTRICTS } from './city.js?v=3';
 import { CameraSystem } from './camera.js?v=3';
 import { createInterior, animateInterior, FLOOR_CONFIG } from './interiors.js?v=1';
 import { initData, getData, getKPIs, getVisualData, getScheduleDisplayLines, getProjectDisplayLines } from './data.js?v=1';
+import {
+    PerformanceMonitor,
+    createDustMotes, animateDustMotes,
+    createDataStreams, animateDataStreams,
+    createDistrictLabels, animateDistrictLabels,
+    createAtmosphericHaze,
+    createHubHoloRing, animateHubHoloRing,
+    HoverHighlight,
+    createImprovedRoads,
+} from './effects.js?v=1';
+
+// ── Loading Screen ──
+const loadingOverlay = document.getElementById('loading-overlay');
+const loadingBar = document.getElementById('loading-bar');
+const loadingText = document.getElementById('loading-text');
+
+function updateLoading(pct, msg) {
+    if (loadingBar) loadingBar.style.width = pct + '%';
+    if (loadingText) loadingText.textContent = msg;
+}
+
+function hideLoading() {
+    if (loadingOverlay) {
+        loadingOverlay.style.opacity = '0';
+        setTimeout(() => { loadingOverlay.style.display = 'none'; }, 600);
+    }
+}
+
+updateLoading(10, 'Initializing renderer...');
 
 // ── Scene Setup ──
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -36,6 +65,8 @@ const bloom = new UnrealBloomPass(
 );
 composer.addPass(bloom);
 
+updateLoading(20, 'Building city...');
+
 // ── Lighting ──
 scene.add(new THREE.AmbientLight(0x0a0a14, 0.4));
 const dirLight = new THREE.DirectionalLight(0x334466, 0.6);
@@ -48,20 +79,46 @@ const { cityGroup, buildingMeshes } = createCity(scene);
 // Expose BUILDINGS globally for interiors.js
 window.BUILDINGS = BUILDINGS;
 
+updateLoading(40, 'Creating effects...');
+
+// ── Improved Roads ──
+createImprovedRoads(cityGroup, DISTRICTS);
+
+// ── Effects Systems ──
+const dustMotes = createDustMotes(scene, 250);
+const dataStreams = createDataStreams(scene, buildingMeshes);
+const districtLabels = createDistrictLabels(scene, DISTRICTS);
+createAtmosphericHaze(scene);
+const hubHoloRing = createHubHoloRing(scene);
+const hoverHighlight = new HoverHighlight();
+const perfMonitor = new PerformanceMonitor(bloom);
+
+updateLoading(60, 'Setting up camera...');
+
 // ── Camera System ──
 const cam = new CameraSystem(camera, renderer);
 
 // ── Interior Rooms (for hero buildings) ──
-const activeInteriors = new Map(); // buildingId -> { ground, mid, roof }
+const activeInteriors = new Map();
 let currentInteriorBuilding = null;
 
 // ── Raycasting ──
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2(-999, -999);
 
+// ── Hover Tooltip ──
+const tooltip = document.getElementById('hover-tooltip');
+let hoveredBuildingId = null;
+
 renderer.domElement.addEventListener('pointermove', (e) => {
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+    // Update tooltip position
+    if (tooltip && hoveredBuildingId) {
+        tooltip.style.left = (e.clientX + 14) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+    }
 });
 
 renderer.domElement.addEventListener('click', (e) => {
@@ -76,14 +133,12 @@ renderer.domElement.addEventListener('click', (e) => {
         const bld = BUILDINGS.find(b => b.id === buildingId);
         if (bld) {
             if (cam.currentTier === 'building' && cam.currentBuilding === buildingId) {
-                // Already at this building — enter interior (ground floor)
                 if (bld.hero) {
                     enterBuildingInterior(buildingId);
                 } else {
                     cam.goToDistrict(bld.district);
                 }
             } else if (cam.currentTier === 'interior' && cam.currentBuilding === buildingId) {
-                // In interior, click exits to building view
                 exitBuildingInterior();
             } else {
                 cam.goToBuilding(bld);
@@ -91,6 +146,50 @@ renderer.domElement.addEventListener('click', (e) => {
         }
     }
 });
+
+// ── Hover Detection (runs in animate loop) ──
+let lastHoverCheck = 0;
+
+function updateHover(t) {
+    if (t - lastHoverCheck < 0.1) return; // throttle to 10Hz
+    lastHoverCheck = t;
+
+    raycaster.setFromCamera(mouse, camera);
+    const clickables = [];
+    scene.traverse(obj => {
+        if (obj.isMesh && obj.userData.clickable) clickables.push(obj);
+    });
+    const hits = raycaster.intersectObjects(clickables);
+
+    if (hits.length > 0) {
+        const buildingId = hits[0].object.userData.buildingId;
+        const bld = BUILDINGS.find(b => b.id === buildingId);
+
+        if (buildingId !== hoveredBuildingId) {
+            hoveredBuildingId = buildingId;
+            // Find building group mesh
+            const entry = buildingMeshes[buildingId];
+            hoverHighlight.setHovered(entry ? entry.mesh : null);
+
+            // Update tooltip
+            if (tooltip && bld) {
+                const visual = getVisualData(buildingId);
+                const statusDot = visual.beacon === 'green' ? '🟢' : visual.beacon === 'amber' ? '🟡' : '🔴';
+                tooltip.innerHTML = `<strong>${bld.name}</strong><br><span class="tooltip-district">${DISTRICTS[bld.district].name}</span><br>${statusDot} ${visual.beacon}`;
+                tooltip.classList.remove('hidden');
+            }
+        }
+
+        renderer.domElement.style.cursor = 'pointer';
+    } else {
+        if (hoveredBuildingId) {
+            hoveredBuildingId = null;
+            hoverHighlight.setHovered(null);
+            if (tooltip) tooltip.classList.add('hidden');
+        }
+        renderer.domElement.style.cursor = 'default';
+    }
+}
 
 // ── Breadcrumb ──
 const breadcrumb = document.getElementById('breadcrumb');
@@ -112,7 +211,6 @@ cam.onTierChange = (tier, district, building) => {
 
     breadcrumb.innerHTML = html;
 
-    // Bind clicks
     breadcrumb.querySelectorAll('.crumb').forEach(el => {
         el.addEventListener('click', () => {
             const action = el.dataset.action;
@@ -125,7 +223,6 @@ cam.onTierChange = (tier, district, building) => {
     const floorSelector = document.getElementById('floor-selector');
     if (tier === 'interior') {
         floorSelector.classList.remove('hidden');
-        // Set active floor button
         floorSelector.querySelectorAll('.floor-btn').forEach(btn => {
             btn.classList.remove('active');
             if (btn.dataset.floor === cam.currentFloor) {
@@ -149,13 +246,11 @@ document.querySelectorAll('.dock-btn').forEach(btn => {
 // ── Interior Navigation ──
 
 function enterBuildingInterior(buildingId) {
-    // Hide exterior building mesh
     const buildingEntry = buildingMeshes[buildingId];
     if (buildingEntry) {
         buildingEntry.mesh.visible = false;
     }
 
-    // Create interiors if not already created
     if (!activeInteriors.has(buildingId)) {
         const interiors = {
             ground: createInterior(buildingId, 'ground', scene),
@@ -165,24 +260,20 @@ function enterBuildingInterior(buildingId) {
         activeInteriors.set(buildingId, interiors);
     }
 
-    // Show all floors, start with ground
     const interiors = activeInteriors.get(buildingId);
     for (const floor of Object.values(interiors)) {
         if (floor) floor.visible = true;
     }
 
-    // Navigate to ground floor
     cam.goToFloor(buildingId, 'ground');
     currentInteriorBuilding = buildingId;
 
-    // Apply data to interior screens immediately
     updateInteriorScreens();
 }
 
 function exitBuildingInterior() {
     if (!currentInteriorBuilding) return;
 
-    // Hide interiors
     const interiors = activeInteriors.get(currentInteriorBuilding);
     if (interiors) {
         for (const floor of Object.values(interiors)) {
@@ -190,13 +281,11 @@ function exitBuildingInterior() {
         }
     }
 
-    // Show exterior building
     const buildingEntry = buildingMeshes[currentInteriorBuilding];
     if (buildingEntry) {
         buildingEntry.mesh.visible = true;
     }
 
-    // Navigate back to building view
     const bld = BUILDINGS.find(b => b.id === currentInteriorBuilding);
     if (bld) cam.goToBuilding(bld);
 
@@ -208,7 +297,6 @@ function goToFloor(floorKey) {
     const interiors = activeInteriors.get(currentInteriorBuilding);
     if (!interiors || !interiors[floorKey]) return;
 
-    // Hide other floors, show selected
     for (const [key, floor] of Object.entries(interiors)) {
         if (floor) floor.visible = (key === floorKey);
     }
@@ -307,32 +395,28 @@ document.querySelectorAll('.floor-btn').forEach(btn => {
 });
 
 // ── Data Layer Initialization ──
+updateLoading(70, 'Loading data...');
+
 initData().then(() => {
     console.log('Data layer ready — buildings will react to data');
-    // Create initial interior screen textures once data is loaded
     updateInteriorScreens();
+    updateLoading(100, 'Ready');
+    hideLoading();
 });
 
 // ── Data-Driven Building Visuals ──
 
-// Cache beacon colors for quick lookup
 const BEACON_COLORS = {
     green: 0x00ff88,
     amber: 0xffaa00,
     red: 0xff4444,
 };
 
-// Track last data update time for periodic refresh
 let lastDataUpdateTime = 0;
 const DATA_UPDATE_INTERVAL = 5; // seconds
 
-// Canvas textures for interior screens (keyed by buildingId)
 const screenTextures = {};
 
-/**
- * Update building visuals based on live data.
- * Called every DATA_UPDATE_INTERVAL seconds from the animate loop.
- */
 function updateBuildingVisuals(t) {
     for (const [id, entry] of Object.entries(buildingMeshes)) {
         if (!entry.data.hero) continue;
@@ -342,35 +426,31 @@ function updateBuildingVisuals(t) {
         // 1. Beacon color change
         const beaconColor = BEACON_COLORS[visual.beacon] || BEACON_COLORS.green;
         entry.mesh.traverse(child => {
-            // Find the beacon sphere (top-most SphereGeometry)
             if (child.isMesh && child.geometry?.type === 'SphereGeometry' && child.position.y > 10) {
                 child.material.color.setHex(beaconColor);
             }
-            // Find beacon point light
             if (child.isLight && child.position.y > 10) {
                 child.color.setHex(beaconColor);
             }
         });
 
         // 2. Window brightness based on events per minute
-        const brightness = Math.min(1, visual.eventsPerMinute / 20); // normalize to 0-1
+        const brightness = Math.min(1, visual.eventsPerMinute / 20);
         entry.mesh.traverse(child => {
             if (child.isMesh && child.geometry?.type === 'TorusGeometry') {
-                // Window ring bands — pulse opacity with activity
                 child.material.opacity = 0.15 + brightness * 0.45;
             }
         });
 
         // 3. Building height pulse based on activity level
         const baseScale = 1.0;
-        const pulseAmount = visual.activity * 0.03; // subtle 3% max scale pulse
+        const pulseAmount = visual.activity * 0.03;
         const scale = baseScale + pulseAmount * Math.sin(t * 2 + (entry.data.pos[0] || 0));
         entry.mesh.scale.y = scale;
 
         // 4. Emissive intensity based on activity
         entry.mesh.traverse(child => {
             if (child.isMesh && child.material?.emissiveIntensity !== undefined) {
-                // Only adjust the main body (CylinderGeometry)
                 if (child.geometry?.type === 'CylinderGeometry' && child.userData?.buildingId) {
                     child.material.emissiveIntensity = 0.1 + visual.activity * 0.3;
                 }
@@ -379,9 +459,6 @@ function updateBuildingVisuals(t) {
     }
 }
 
-/**
- * Create a canvas texture with text lines for interior holographic screens
- */
 function createScreenTexture(lines, primaryColor, width, height) {
     const canvas = document.createElement('canvas');
     canvas.width = width || 512;
@@ -415,32 +492,31 @@ function createScreenTexture(lines, primaryColor, width, height) {
     let y = 16;
     for (const line of lines) {
         if (line.startsWith('──')) {
-            // Header line
             ctx.fillStyle = primaryColor || '#00e0ff';
             ctx.font = `bold ${fontSize + 2}px monospace`;
             ctx.fillText(line, 16, y);
             ctx.font = `${fontSize}px monospace`;
         } else if (line.startsWith('▶')) {
-            ctx.fillStyle = '#ffaa00'; // in-progress = amber
+            ctx.fillStyle = '#ffaa00';
             ctx.fillText(line, 16, y);
         } else if (line.startsWith('✓')) {
-            ctx.fillStyle = '#00ff88'; // complete = green
+            ctx.fillStyle = '#00ff88';
             ctx.fillText(line, 16, y);
         } else if (line.startsWith('○')) {
-            ctx.fillStyle = '#668899'; // scheduled = dim
+            ctx.fillStyle = '#668899';
             ctx.fillText(line, 16, y);
         } else if (line.startsWith('  ')) {
-            ctx.fillStyle = '#445566'; // detail = dimmer
+            ctx.fillStyle = '#445566';
             ctx.fillText(line, 16, y);
         } else if (line.includes('█') || line.includes('░')) {
-            ctx.fillStyle = '#88ccff'; // progress bar
+            ctx.fillStyle = '#88ccff';
             ctx.fillText(line, 16, y);
         } else {
             ctx.fillStyle = '#aabbcc';
             ctx.fillText(line, 16, y);
         }
         y += fontSize + 4;
-        if (y > canvas.height - 20) break; // don't overflow
+        if (y > canvas.height - 20) break;
     }
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -448,10 +524,6 @@ function createScreenTexture(lines, primaryColor, width, height) {
     return texture;
 }
 
-/**
- * Update interior holographic screens with current data.
- * Applies canvas textures to the PlaneGeometry display meshes in interiors.
- */
 function updateInteriorScreens() {
     for (const [buildingId, interiors] of activeInteriors) {
         const ground = interiors.ground;
@@ -470,15 +542,12 @@ function updateInteriorScreens() {
 
         const texture = createScreenTexture(lines, color);
 
-        // Cache so we don't create new textures every frame
         const oldTex = screenTextures[buildingId];
         if (oldTex) oldTex.dispose();
         screenTextures[buildingId] = texture;
 
-        // Find display planes in ground floor interior and apply texture
         ground.traverse(child => {
             if (child.isMesh && child.geometry?.type === 'PlaneGeometry') {
-                // These are the holographic displays created in interiors.js
                 child.material = new THREE.MeshBasicMaterial({
                     map: texture,
                     transparent: true,
@@ -500,22 +569,41 @@ let lastFpsTime = performance.now();
 
 // ── Animation Loop ──
 const clock = new THREE.Clock();
+let lastFrameTime = performance.now();
 
 function animate() {
     requestAnimationFrame(animate);
     const t = performance.now() / 1000;
+    const now = performance.now();
+    const dt = (now - lastFrameTime) / 1000;
+    lastFrameTime = now;
 
     cam.update(t);
 
-    // Data-driven building visuals (beacons, windows, pulse)
-    // Update data every DATA_UPDATE_INTERVAL seconds
+    // Performance monitor
+    perfMonitor.recordFrame(now - (now - dt * 1000));
+    perfMonitor.check(t);
+
+    // Hover detection
+    updateHover(t);
+
+    // Hover highlight smooth update
+    hoverHighlight.update(dt);
+
+    // Effects animations
+    animateDustMotes(dustMotes, t);
+    animateDataStreams(dataStreams, t);
+    animateDistrictLabels(districtLabels, t);
+    animateHubHoloRing(hubHoloRing, t);
+
+    // Data-driven building visuals
     if (t - lastDataUpdateTime > DATA_UPDATE_INTERVAL) {
         lastDataUpdateTime = t;
         updateInteriorScreens();
     }
     updateBuildingVisuals(t);
 
-    // Animate hero building beacons (opacity pulse — layered on top of data color)
+    // Animate hero building beacons (opacity pulse)
     for (const [id, entry] of Object.entries(buildingMeshes)) {
         if (entry.data.hero) {
             const beacon = entry.mesh.children.find(c => c.geometry?.type === 'SphereGeometry');
@@ -540,7 +628,6 @@ function animate() {
 
     // FPS counter
     frameCount++;
-    const now = performance.now();
     if (now - lastFpsTime >= 1000) {
         const fps = Math.round(frameCount / ((now - lastFpsTime) / 1000));
         fpsEl.textContent = fps + ' fps';
@@ -561,4 +648,4 @@ window.addEventListener('resize', () => {
     composer.setSize(window.innerWidth, window.innerHeight);
 });
 
-console.log('Bath Foundry Dashboard v0.2 — Data Integration');
+console.log('Bath Foundry Dashboard v0.3 — Polish + Performance');
