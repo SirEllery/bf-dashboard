@@ -323,7 +323,8 @@ function animate() {
         if (entry.data.hero) {
             const beacon = entry.mesh.children.find(c => c.geometry?.type === 'SphereGeometry');
             if (beacon) {
-                beacon.material.opacity = 0.6 + 0.4 * Math.sin(t * 3 + entry.data.position[0]);
+                const pos = entry.data.pos || entry.data.position;
+                beacon.material.opacity = 0.6 + 0.4 * Math.sin(t * 3 + pos[0]);
             }
         }
     }
