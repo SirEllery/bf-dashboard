@@ -10,6 +10,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { createCity, BUILDINGS, DISTRICTS } from './city.js?v=2';
 import { CameraSystem } from './camera.js?v=3';
 import { createInterior, animateInterior, FLOOR_CONFIG } from './interiors.js?v=1';
+import { initData, getData, getKPIs, getVisualData, getScheduleDisplayLines, getProjectDisplayLines } from './data.js?v=1';
 
 // ── Scene Setup ──
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -173,6 +174,9 @@ function enterBuildingInterior(buildingId) {
     // Navigate to ground floor
     cam.goToFloor(buildingId, 'ground');
     currentInteriorBuilding = buildingId;
+
+    // Apply data to interior screens immediately
+    updateInteriorScreens();
 }
 
 function exitBuildingInterior() {
@@ -302,6 +306,191 @@ document.querySelectorAll('.floor-btn').forEach(btn => {
     });
 });
 
+// ── Data Layer Initialization ──
+initData().then(() => {
+    console.log('Data layer ready — buildings will react to data');
+    // Create initial interior screen textures once data is loaded
+    updateInteriorScreens();
+});
+
+// ── Data-Driven Building Visuals ──
+
+// Cache beacon colors for quick lookup
+const BEACON_COLORS = {
+    green: 0x00ff88,
+    amber: 0xffaa00,
+    red: 0xff4444,
+};
+
+// Track last data update time for periodic refresh
+let lastDataUpdateTime = 0;
+const DATA_UPDATE_INTERVAL = 5; // seconds
+
+// Canvas textures for interior screens (keyed by buildingId)
+const screenTextures = {};
+
+/**
+ * Update building visuals based on live data.
+ * Called every DATA_UPDATE_INTERVAL seconds from the animate loop.
+ */
+function updateBuildingVisuals(t) {
+    for (const [id, entry] of Object.entries(buildingMeshes)) {
+        if (!entry.data.hero) continue;
+
+        const visual = getVisualData(id);
+
+        // 1. Beacon color change
+        const beaconColor = BEACON_COLORS[visual.beacon] || BEACON_COLORS.green;
+        entry.mesh.traverse(child => {
+            // Find the beacon sphere (top-most SphereGeometry)
+            if (child.isMesh && child.geometry?.type === 'SphereGeometry' && child.position.y > 10) {
+                child.material.color.setHex(beaconColor);
+            }
+            // Find beacon point light
+            if (child.isLight && child.position.y > 10) {
+                child.color.setHex(beaconColor);
+            }
+        });
+
+        // 2. Window brightness based on events per minute
+        const brightness = Math.min(1, visual.eventsPerMinute / 20); // normalize to 0-1
+        entry.mesh.traverse(child => {
+            if (child.isMesh && child.geometry?.type === 'TorusGeometry') {
+                // Window ring bands — pulse opacity with activity
+                child.material.opacity = 0.15 + brightness * 0.45;
+            }
+        });
+
+        // 3. Building height pulse based on activity level
+        const baseScale = 1.0;
+        const pulseAmount = visual.activity * 0.03; // subtle 3% max scale pulse
+        const scale = baseScale + pulseAmount * Math.sin(t * 2 + (entry.data.pos[0] || 0));
+        entry.mesh.scale.y = scale;
+
+        // 4. Emissive intensity based on activity
+        entry.mesh.traverse(child => {
+            if (child.isMesh && child.material?.emissiveIntensity !== undefined) {
+                // Only adjust the main body (CylinderGeometry)
+                if (child.geometry?.type === 'CylinderGeometry' && child.userData?.buildingId) {
+                    child.material.emissiveIntensity = 0.1 + visual.activity * 0.3;
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Create a canvas texture with text lines for interior holographic screens
+ */
+function createScreenTexture(lines, primaryColor, width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width || 512;
+    canvas.height = height || 512;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = 'rgba(4, 8, 16, 0.9)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Border
+    ctx.strokeStyle = primaryColor || '#00e0ff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+
+    // Scan line effect
+    ctx.strokeStyle = 'rgba(0, 224, 255, 0.03)';
+    ctx.lineWidth = 1;
+    for (let y = 0; y < canvas.height; y += 4) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+
+    // Text
+    const fontSize = 14;
+    ctx.font = `${fontSize}px monospace`;
+    ctx.textBaseline = 'top';
+
+    let y = 16;
+    for (const line of lines) {
+        if (line.startsWith('──')) {
+            // Header line
+            ctx.fillStyle = primaryColor || '#00e0ff';
+            ctx.font = `bold ${fontSize + 2}px monospace`;
+            ctx.fillText(line, 16, y);
+            ctx.font = `${fontSize}px monospace`;
+        } else if (line.startsWith('▶')) {
+            ctx.fillStyle = '#ffaa00'; // in-progress = amber
+            ctx.fillText(line, 16, y);
+        } else if (line.startsWith('✓')) {
+            ctx.fillStyle = '#00ff88'; // complete = green
+            ctx.fillText(line, 16, y);
+        } else if (line.startsWith('○')) {
+            ctx.fillStyle = '#668899'; // scheduled = dim
+            ctx.fillText(line, 16, y);
+        } else if (line.startsWith('  ')) {
+            ctx.fillStyle = '#445566'; // detail = dimmer
+            ctx.fillText(line, 16, y);
+        } else if (line.includes('█') || line.includes('░')) {
+            ctx.fillStyle = '#88ccff'; // progress bar
+            ctx.fillText(line, 16, y);
+        } else {
+            ctx.fillStyle = '#aabbcc';
+            ctx.fillText(line, 16, y);
+        }
+        y += fontSize + 4;
+        if (y > canvas.height - 20) break; // don't overflow
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+}
+
+/**
+ * Update interior holographic screens with current data.
+ * Applies canvas textures to the PlaneGeometry display meshes in interiors.
+ */
+function updateInteriorScreens() {
+    for (const [buildingId, interiors] of activeInteriors) {
+        const ground = interiors.ground;
+        if (!ground) continue;
+
+        let lines, color;
+        if (buildingId === 'scheduling') {
+            lines = getScheduleDisplayLines();
+            color = '#ff4422';
+        } else if (buildingId === 'projects') {
+            lines = getProjectDisplayLines();
+            color = '#ff4422';
+        } else {
+            continue;
+        }
+
+        const texture = createScreenTexture(lines, color);
+
+        // Cache so we don't create new textures every frame
+        const oldTex = screenTextures[buildingId];
+        if (oldTex) oldTex.dispose();
+        screenTextures[buildingId] = texture;
+
+        // Find display planes in ground floor interior and apply texture
+        ground.traverse(child => {
+            if (child.isMesh && child.geometry?.type === 'PlaneGeometry') {
+                // These are the holographic displays created in interiors.js
+                child.material = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    transparent: true,
+                    opacity: 0.85,
+                    blending: THREE.AdditiveBlending,
+                    side: THREE.DoubleSide,
+                });
+            }
+        });
+    }
+}
+
 // ── Perf Counters ──
 const fpsEl = document.getElementById('fps');
 const drawsEl = document.getElementById('draws');
@@ -318,7 +507,15 @@ function animate() {
 
     cam.update(t);
 
-    // Animate hero building beacons (pulse)
+    // Data-driven building visuals (beacons, windows, pulse)
+    // Update data every DATA_UPDATE_INTERVAL seconds
+    if (t - lastDataUpdateTime > DATA_UPDATE_INTERVAL) {
+        lastDataUpdateTime = t;
+        updateInteriorScreens();
+    }
+    updateBuildingVisuals(t);
+
+    // Animate hero building beacons (opacity pulse — layered on top of data color)
     for (const [id, entry] of Object.entries(buildingMeshes)) {
         if (entry.data.hero) {
             const beacon = entry.mesh.children.find(c => c.geometry?.type === 'SphereGeometry');
@@ -364,4 +561,4 @@ window.addEventListener('resize', () => {
     composer.setSize(window.innerWidth, window.innerHeight);
 });
 
-console.log('Bath Foundry Dashboard v0.1 — Tech Spike');
+console.log('Bath Foundry Dashboard v0.2 — Data Integration');

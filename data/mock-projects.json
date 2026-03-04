@@ -1,0 +1,113 @@
+{
+  "projects": [
+    {
+      "id": "proj-001",
+      "name": "Hampton Suites Renovation",
+      "client": "Hampton Hospitality Group",
+      "stage": "in-progress",
+      "completion": 65,
+      "startDate": "2026-02-10",
+      "targetDate": "2026-03-28",
+      "budget": 28500,
+      "spent": 18200,
+      "description": "Full bathroom refinishing — 12 hotel rooms",
+      "tasks": [
+        { "name": "Rooms 101-104", "status": "complete" },
+        { "name": "Rooms 105-108", "status": "in-progress" },
+        { "name": "Rooms 109-112", "status": "planning" }
+      ]
+    },
+    {
+      "id": "proj-002",
+      "name": "Vista Ridge HOA Common Areas",
+      "client": "Vista Ridge HOA",
+      "stage": "in-progress",
+      "completion": 40,
+      "startDate": "2026-02-24",
+      "targetDate": "2026-04-15",
+      "budget": 15000,
+      "spent": 5800,
+      "description": "Pool house and clubhouse bathroom resurfacing",
+      "tasks": [
+        { "name": "Pool house men's", "status": "complete" },
+        { "name": "Pool house women's", "status": "in-progress" },
+        { "name": "Clubhouse main bath", "status": "planning" },
+        { "name": "Clubhouse upstairs", "status": "planning" }
+      ]
+    },
+    {
+      "id": "proj-003",
+      "name": "Park East Apartment Turns",
+      "client": "Park East Management",
+      "stage": "in-progress",
+      "completion": 25,
+      "startDate": "2026-03-01",
+      "targetDate": "2026-03-20",
+      "budget": 9200,
+      "spent": 2100,
+      "description": "6 unit turns — tub and counter refinishing",
+      "tasks": [
+        { "name": "Unit 3A", "status": "complete" },
+        { "name": "Unit 3B", "status": "in-progress" },
+        { "name": "Units 4A-4D", "status": "planning" }
+      ]
+    },
+    {
+      "id": "proj-004",
+      "name": "Lakeway Estate Master Bath",
+      "client": "Richardson Family",
+      "stage": "planning",
+      "completion": 10,
+      "startDate": "2026-03-10",
+      "targetDate": "2026-03-22",
+      "budget": 6800,
+      "spent": 0,
+      "description": "Luxury master bath — marble-look refinish + custom accent tile",
+      "tasks": [
+        { "name": "Material sourcing", "status": "in-progress" },
+        { "name": "Surface prep", "status": "planning" },
+        { "name": "Refinish & seal", "status": "planning" }
+      ]
+    },
+    {
+      "id": "proj-005",
+      "name": "Downtown Condo Flip",
+      "client": "Redline Properties LLC",
+      "stage": "complete",
+      "completion": 100,
+      "startDate": "2026-02-01",
+      "targetDate": "2026-02-28",
+      "budget": 4500,
+      "spent": 4200,
+      "description": "Tub, shower, and vanity refinish for resale staging",
+      "tasks": [
+        { "name": "Tub refinish", "status": "complete" },
+        { "name": "Shower resurfacing", "status": "complete" },
+        { "name": "Vanity countertop", "status": "complete" }
+      ]
+    },
+    {
+      "id": "proj-006",
+      "name": "South Congress Airbnb Bundle",
+      "client": "M. Castillo Investments",
+      "stage": "in-progress",
+      "completion": 55,
+      "startDate": "2026-02-17",
+      "targetDate": "2026-03-14",
+      "budget": 12000,
+      "spent": 6500,
+      "description": "3 Airbnb units — full bathroom refresh for 5-star reviews",
+      "tasks": [
+        { "name": "Unit A — Garden Suite", "status": "complete" },
+        { "name": "Unit B — Loft", "status": "in-progress" },
+        { "name": "Unit C — Penthouse", "status": "planning" }
+      ]
+    }
+  ],
+  "pipeline": {
+    "planning": 2,
+    "inProgress": 4,
+    "complete": 1,
+    "totalValue": 76000
+  }
+}

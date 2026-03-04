@@ -1,0 +1,127 @@
+{
+  "date": "2026-03-04",
+  "crews": [
+    {
+      "id": "crew-alpha",
+      "name": "Alpha Crew",
+      "lead": "Marcus Davis",
+      "members": ["Marcus Davis", "Jake Hernandez", "Tyler Ross"],
+      "status": "on-site"
+    },
+    {
+      "id": "crew-bravo",
+      "name": "Bravo Crew",
+      "lead": "Diana Chen",
+      "members": ["Diana Chen", "Sam Whitaker", "Chris Bell"],
+      "status": "on-site"
+    },
+    {
+      "id": "crew-charlie",
+      "name": "Charlie Crew",
+      "lead": "Rob Tanaka",
+      "members": ["Rob Tanaka", "Alex Ruiz"],
+      "status": "en-route"
+    },
+    {
+      "id": "crew-delta",
+      "name": "Delta Crew",
+      "lead": "Brianna Holt",
+      "members": ["Brianna Holt", "Eli Vance", "Maya Nguyen"],
+      "status": "staging"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "job-001",
+      "type": "Tub Refinish",
+      "client": "Sanderson Residence",
+      "address": "412 Maple St, Austin TX",
+      "crew": "crew-alpha",
+      "startTime": "08:00",
+      "endTime": "11:30",
+      "status": "in-progress",
+      "notes": "Porcelain tub, light chipping on drain side"
+    },
+    {
+      "id": "job-002",
+      "type": "Tile Resurfacing",
+      "client": "Comfort Inn Downtown",
+      "address": "880 Congress Ave, Austin TX",
+      "crew": "crew-bravo",
+      "startTime": "07:30",
+      "endTime": "14:00",
+      "status": "in-progress",
+      "notes": "6 bathroom suite tiles — commercial rate"
+    },
+    {
+      "id": "job-003",
+      "type": "Tub Refinish",
+      "client": "Gutierrez Residence",
+      "address": "2201 E Riverside Dr, Austin TX",
+      "crew": "crew-charlie",
+      "startTime": "10:00",
+      "endTime": "13:00",
+      "status": "scheduled",
+      "notes": "Cast iron clawfoot, customer wants white satin"
+    },
+    {
+      "id": "job-004",
+      "type": "Countertop Refinish",
+      "client": "Park East Apartments",
+      "address": "1500 E 6th St, Austin TX",
+      "crew": "crew-delta",
+      "startTime": "09:00",
+      "endTime": "12:00",
+      "status": "scheduled",
+      "notes": "Kitchen countertop — laminate to granite look"
+    },
+    {
+      "id": "job-005",
+      "type": "Shower Resurfacing",
+      "client": "McNally Residence",
+      "address": "7722 Burnet Rd, Austin TX",
+      "crew": "crew-alpha",
+      "startTime": "13:00",
+      "endTime": "16:00",
+      "status": "scheduled",
+      "notes": "Fiberglass shower stall, mold damage repair first"
+    },
+    {
+      "id": "job-006",
+      "type": "Tub & Tile Combo",
+      "client": "Hampton Suites Lakeway",
+      "address": "3300 Lakeway Blvd, Lakeway TX",
+      "crew": "crew-bravo",
+      "startTime": "15:00",
+      "endTime": "18:00",
+      "status": "scheduled",
+      "notes": "Hotel renovation batch — 3 rooms"
+    },
+    {
+      "id": "job-007",
+      "type": "Chip Repair",
+      "client": "Vista Ridge HOA",
+      "address": "900 Vista Ridge Dr, Cedar Park TX",
+      "crew": "crew-charlie",
+      "startTime": "14:30",
+      "endTime": "16:00",
+      "status": "scheduled",
+      "notes": "Quick chip repair, model unit showing Friday"
+    },
+    {
+      "id": "job-008",
+      "type": "Bathtub Liner Install",
+      "client": "Flores Residence",
+      "address": "1045 S Lamar Blvd, Austin TX",
+      "crew": "crew-delta",
+      "startTime": "13:30",
+      "endTime": "16:30",
+      "status": "scheduled",
+      "notes": "New liner over existing tub, customer supplied color"
+    }
+  ],
+  "utilization": {
+    "overall": 87,
+    "byHour": [60, 75, 100, 100, 88, 88, 100, 100, 75, 50]
+  }
+}
