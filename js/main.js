@@ -21,6 +21,7 @@ import {
     HoverHighlight,
     createImprovedRoads,
 } from './effects.js?v=1';
+import { openPanel, closePanel, isPanelOpen, getCurrentBuildingId } from './panel.js?v=1';
 
 // ── Loading Screen ──
 const loadingOverlay = document.getElementById('loading-overlay');
@@ -133,16 +134,27 @@ renderer.domElement.addEventListener('click', (e) => {
         const bld = BUILDINGS.find(b => b.id === buildingId);
         if (bld) {
             if (cam.currentTier === 'building' && cam.currentBuilding === buildingId) {
+                // Already focused on this building — open detail panel
+                openPanel(buildingId);
                 if (bld.hero) {
-                    enterBuildingInterior(buildingId);
-                } else {
-                    cam.goToDistrict(bld.district);
+                    // Third click on hero building → enter interior
+                    if (isPanelOpen() && getCurrentBuildingId() === buildingId) {
+                        // Panel already showing this building, enter interior
+                        enterBuildingInterior(buildingId);
+                    }
                 }
             } else if (cam.currentTier === 'interior' && cam.currentBuilding === buildingId) {
                 exitBuildingInterior();
             } else {
+                // Navigate to building and open panel
                 cam.goToBuilding(bld);
+                openPanel(buildingId);
             }
+        }
+    } else {
+        // Clicked empty space — close panel if open
+        if (isPanelOpen()) {
+            closePanel();
         }
     }
 });
